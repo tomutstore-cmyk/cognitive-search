@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cariikan.com — Pencarian Web</title>
+  <meta name="description" content="Cariikan.com — mesin pencari web sederhana." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext y='20' font-size='20'%3E🐟%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Background -->
+  <div class="bg" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <!-- Landing -->
+  <section id="landing" class="landing">
+    <div class="mark fade-rise">
+      <div class="mark-icon">🐟</div>
+      <h1>Cari<span class="accent">ikan</span>.com</h1>
+    </div>
+    <div class="search-wrap fade-rise">
+      <form id="search-form" class="search" autocomplete="off">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="search-input" type="text" placeholder="Cari apa pun di web…" aria-label="Cari di web" />
+        <button type="reset" id="clear-btn" class="clear" aria-label="Hapus" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+        <button type="submit" class="submit" aria-label="Cari">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section id="results-view" class="results-view" hidden>
+    <header class="topbar">
+      <button id="home-btn" class="home-btn" aria-label="Beranda">
+        <span class="mark-icon sm">🐟</span>
+        <span class="brand">Cariikan.com</span>
+      </button>
+    </header>
+
+    <main class="results-main">
+      <div class="search-wrap compact">
+        <form id="search-form-2" class="search" autocomplete="off">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="search-input-2" type="text" placeholder="Cari lagi…" aria-label="Cari di web" />
+          <button type="submit" class="submit" aria-label="Cari">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <div id="meta" class="meta" hidden>
+        <svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+        <span id="meta-text"></span>
+      </div>
+
+      <div id="status" class="status" hidden></div>
+      <div id="results" class="results"></div>
+
+      <footer class="foot">
+        <p class="foot-title">Cari lebih dalam</p>
+        <p class="foot-sub">Pencarian lanjutan dengan satu ketukan.</p>
+        <div id="prompts" class="prompts"></div>
+        <p class="foot-base">Cariikan.com · Pencarian Web · Hasil nyata dari web</p>
+      </footer>
+    </main>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
