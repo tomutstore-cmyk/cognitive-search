@@ -80,7 +80,7 @@ export default function SearchAperture({
             className="group flex items-center gap-2 px-5 py-2.5 rounded-full bg-foreground text-background text-sm font-medium disabled:opacity-40 hover:bg-accent hover:text-accent-foreground transition-all duration-300 focus-ring"
           >
             <Sparkles className="w-4 h-4 transition-transform group-hover:rotate-12" strokeWidth={1.75} />
-            <span className="hidden sm:inline">Synthesize</span>
+            <span className="hidden sm:inline">Cari</span>
           </button>
         </div>
       </div>
