@@ -28,29 +28,8 @@ export default function Home() {
     setResults([]);
 
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a web search engine. For the user query: "${clean}", return a list of the most relevant real web pages. For each, give a concise page title (max ~90 chars), the full canonical URL, and a short snippet (max ~160 chars) summarizing what the page is about. Return only factual, existing web pages — do not invent URLs. Limit to 10 results, ordered by relevance.`,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            results: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  url: { type: "string" },
-                  snippet: { type: "string" },
-                },
-                required: ["title", "url", "snippet"],
-              },
-            },
-          },
-          required: ["results"],
-        },
-      });
-      const data = res.data || res;
+      const res = await base44.functions.invoke("webSearch", { query: clean });
+      const data = res.data || {};
       const list = Array.isArray(data?.results) ? data.results : [];
       setResults(
         list.map((r) => ({
@@ -254,7 +233,7 @@ function DeepSearchFooter({ onPick }) {
         ))}
       </div>
       <div className="mt-12 text-center text-xs text-moss/60">
-        Cariikan.com · Pencarian Web · Hasil nyata dari DuckDuckGo
+        Cariikan.com · Pencarian Web · Hasil nyata dari web
       </div>
     </footer>
   );

@@ -1,8 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+// Web search powered by the user's own OpenAI API key (no Base44 AI quota used).
+// Uses the Responses API with the web_search tool, then extracts real URLs from
+// the citation annotations in the model's grounded answer.
 
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
     let query = '';
     try {
       const body = await req.json();
@@ -16,86 +17,67 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    const results = await searchDuckDuckGo(query.trim());
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!apiKey) {
+      return Response.json({ error: 'OPENAI_API_KEY not set' }, { status: 500 });
+    }
+
+    const resp = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        tools: [{ type: 'web_search' }],
+        instructions:
+          "You are a web search engine. For the given query, search the web and write a concise, factual summary that cites the most relevant real web pages. Cite each distinct source with an inline URL citation. Aim for up to 10 distinct, high-quality sources, ordered by relevance. Only cite real pages found via search — never invent URLs.",
+        input: query.trim(),
+      }),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      return Response.json({ error: `OpenAI error: ${errText}` }, { status: 502 });
+    }
+
+    const data = await resp.json();
+
+    let text = '';
+    const annotations = [];
+    for (const item of data.output || []) {
+      if (item.type === 'message' && Array.isArray(item.content)) {
+        for (const c of item.content) {
+          if (c.type === 'output_text') {
+            text = c.text || '';
+            if (Array.isArray(c.annotations)) annotations.push(...c.annotations);
+          }
+        }
+      }
+    }
+
+    const results = [];
+    const seen = new Set();
+    for (const ann of annotations) {
+      if (ann.type !== 'url_citation' || !ann.url) continue;
+      const url = cleanUrl(ann.url);
+      if (seen.has(url)) continue;
+      seen.add(url);
+      results.push({
+        title: ann.title || hostOf(url),
+        url,
+        snippet: makeSnippet(text, ann.start_index),
+        source: hostOf(url),
+      });
+      if (results.length >= 10) break;
+    }
 
     return Response.json({ query, count: results.length, results });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
-
-async function searchDuckDuckGo(query) {
-  // Try the html endpoint first
-  let results = await fetchHtmlResults(query);
-  if (results.length === 0) {
-    results = await fetchLiteResults(query);
-  }
-  return results;
-}
-
-async function fetchHtmlResults(query) {
-  const encoded = encodeURIComponent(query);
-  const ddgUrl = `https://html.duckduckgo.com/html/?q=${encoded}`;
-  const resp = await fetch(ddgUrl, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-  });
-  if (!resp.ok) return [];
-  const html = await resp.text();
-  return parseHtmlResults(html);
-}
-
-async function fetchLiteResults(query) {
-  const encoded = encodeURIComponent(query);
-  const ddgUrl = `https://lite.duckduckgo.com/lite/?q=${encoded}`;
-  const resp = await fetch(ddgUrl, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-  });
-  if (!resp.ok) return [];
-  const html = await resp.text();
-  return parseLiteResults(html);
-}
-
-function decodeEntities(str) {
-  return str
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&nbsp;/g, ' ');
-}
-
-function stripTags(str) {
-  return decodeEntities(str.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
-}
-
-function extractRealUrl(href) {
-  try {
-    const u = href.startsWith('http') ? href : `https:${href}`;
-    const parsed = new URL(u);
-    // Skip ad redirect links
-    if (parsed.pathname === '/y.js') return null;
-    const uddg = parsed.searchParams.get('uddg');
-    if (uddg) return decodeURIComponent(uddg);
-    // duckduckgo internal nav / sponsored
-    if (/duckduckgo\.com/i.test(parsed.hostname)) return null;
-    return u;
-  } catch {
-    return null;
-  }
-}
 
 function hostOf(url) {
   try {
@@ -105,77 +87,29 @@ function hostOf(url) {
   }
 }
 
-function isAdUrl(url) {
-  return /duckduckgo\.com\/y\.js/i.test(url) || /doubleclick\.net/i.test(url);
+// Strip OpenAI tracking params and normalise the URL.
+function cleanUrl(raw) {
+  try {
+    const u = new URL(raw);
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach((p) =>
+      u.searchParams.delete(p)
+    );
+    if (Array.from(u.searchParams.keys()).length === 0) {
+      return u.origin + u.pathname + u.hash;
+    }
+    return u.origin + u.pathname + u.search + u.hash;
+  } catch {
+    return raw;
+  }
 }
 
-function parseHtmlResults(html) {
-  const out = [];
-  const re =
-    /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
-
-  let m;
-  while ((m = re.exec(html)) !== null) {
-    const url = extractRealUrl(m[1]);
-    const title = stripTags(m[2]);
-    const snippet = stripTags(m[3]);
-    if (!title || !url || isAdUrl(url)) continue;
-    out.push({
-      title,
-      url,
-      snippet: snippet || title,
-      source: hostOf(url),
-    });
-    if (out.length >= 30) break;
-  }
-
-  if (out.length === 0) {
-    const re2 =
-      /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
-    while ((m = re2.exec(html)) !== null) {
-      const url = extractRealUrl(m[1]);
-      const title = stripTags(m[2]);
-      if (!title || !url || isAdUrl(url)) continue;
-      out.push({ title, url, snippet: title, source: hostOf(url) });
-      if (out.length >= 30) break;
-    }
-  }
-
-  return out;
-}
-
-// Lite endpoint uses a simple table layout:
-// <a class="result-link" href="...">title</a> ... <td class="result-snippet">snippet</td>
-function parseLiteResults(html) {
-  const out = [];
-  const re =
-    /<a[^>]*class="[^"]*result-link[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<td[^>]*class="[^"]*result-snippet[^"]*"[^>]*>([\s\S]*?)<\/td>/g;
-  let m;
-  while ((m = re.exec(html)) !== null) {
-    const url = extractRealUrl(m[1]);
-    const title = stripTags(m[2]);
-    const snippet = stripTags(m[3]);
-    if (!title || !url || isAdUrl(url)) continue;
-    out.push({
-      title,
-      url,
-      snippet: snippet || title,
-      source: hostOf(url),
-    });
-    if (out.length >= 30) break;
-  }
-
-  if (out.length === 0) {
-    const re2 =
-      /<a[^>]*class="[^"]*result-link[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
-    while ((m = re2.exec(html)) !== null) {
-      const url = extractRealUrl(m[1]);
-      const title = stripTags(m[2]);
-      if (!title || !url || isAdUrl(url)) continue;
-      out.push({ title, url, snippet: title, source: hostOf(url) });
-      if (out.length >= 30) break;
-    }
-  }
-
-  return out;
+// Use the text leading up to the citation as a snippet.
+function makeSnippet(text, start) {
+  if (!text || start == null) return '';
+  const s = Math.max(0, start - 220);
+  let seg = text.slice(s, start).replace(/\s+/g, ' ').trim();
+  const dot = seg.lastIndexOf('. ');
+  if (dot > 40) seg = seg.slice(dot + 2);
+  if (seg.length > 200) seg = seg.slice(-200).trim();
+  return seg;
 }
