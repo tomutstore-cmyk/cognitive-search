@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import SearchAperture from "@/components/search/SearchAperture";
-import AISummary from "@/components/search/AISummary";
 import ResultCard from "@/components/search/ResultCard";
-import KnowledgeNode from "@/components/search/KnowledgeNode";
 import RecentSearches from "@/components/search/RecentSearches";
 import ResearchBucket from "@/components/search/ResearchBucket";
-import { Bookmark, ArrowRight, Layers, Globe, Brain, ChevronDown } from "lucide-react";
+import { Bookmark, ArrowRight, Layers, Globe, ChevronDown, Clock } from "lucide-react";
 
 const SUGGESTIONS = [
-  "the future of neural architectures",
-  "how glass refracts light",
-  "compare GPT and Claude reasoning",
-  "origins of minimalist design",
+  "makanan khas Indonesia",
+  "resep ayam goreng",
+  "tempat makan enak di Jakarta",
+  "manfaat buah naga",
 ];
 
 function loadHistory() {
@@ -41,10 +39,7 @@ export default function Home() {
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [summary, setSummary] = useState("");
   const [results, setResults] = useState([]);
-  const [knowledge, setKnowledge] = useState(null);
-  const [citations, setCitations] = useState([]);
 
   const [history, setHistory] = useState(loadHistory);
   const [bucket, setBucket] = useState(loadBucket);
@@ -66,64 +61,27 @@ export default function Home() {
     setLoading(true);
     setError("");
     setSubmittedQuery(clean);
-    setSummary("");
     setResults([]);
-    setKnowledge(null);
-    setCitations([]);
 
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `Perform a comprehensive web search for the query: "${clean}". 
-
-Return:
-1. "summary": a synthesized 2-4 sentence answer distilling the most important knowledge about the query, written neutrally and helpfully.
-2. "results": an array of 6-8 of the most relevant real web pages. Each must include a real, reachable "url", a concise "title", a "snippet" (2-3 sentences capturing the page's value), and a "source" (the site/brand name).
-3. "knowledge": an entity card object with "entity" (canonical name), "description" (1-2 sentences), "facts" (array of 4-5 distinct, interesting factual bullets), and "url" (a canonical reference link like Wikipedia if applicable, else the best source).
-
-Only include real, verifiable URLs that exist on the web. Do not fabricate links.`,
-        add_context_from_internet: true,
-        model: "gemini_3_flash",
-        response_json_schema: {
-          type: "object",
-          properties: {
-            summary: { type: "string" },
-            results: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  url: { type: "string" },
-                  snippet: { type: "string" },
-                  source: { type: "string" },
-                },
-              },
-            },
-            knowledge: {
-              type: "object",
-              properties: {
-                entity: { type: "string" },
-                description: { type: "string" },
-                facts: { type: "array", items: { type: "string" } },
-                url: { type: "string" },
-              },
-            },
-          },
-        },
-      });
-
-      setSummary(res.summary || "");
-      setResults(Array.isArray(res.results) ? res.results : []);
-      setKnowledge(res.knowledge || null);
-      setCitations(Array.isArray(res.results) ? res.results.slice(0, 6) : []);
+      const response = await base44.functions.invoke("webSearch", { query: clean });
+      const data = response.data || {};
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setResults(Array.isArray(data.results) ? data.results : []);
+      }
 
       setHistory((prev) => {
-        const next = [{ id: crypto.randomUUID(), query: clean, at: Date.now() }, ...prev.filter((h) => h.query !== clean)];
+        const next = [
+          { id: crypto.randomUUID(), query: clean, at: Date.now() },
+          ...prev.filter((h) => h.query !== clean),
+        ];
         saveHistory(next);
         return next;
       });
     } catch (e) {
-      setError("Synthesis failed. Please rephrase or try again.");
+      setError("Pencarian gagal. Coba lagi sebentar lagi.");
     } finally {
       setLoading(false);
     }
@@ -142,7 +100,8 @@ Only include real, verifiable URLs that exist on the web. Do not fabricate links
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const hasResults = !loading && (summary || results.length > 0 || knowledge);
+  const hasResults = !loading && results.length > 0;
+  const noResults = !loading && !!submittedQuery && !error && results.length === 0;
   const isLanding = !submittedQuery && !loading && !hasResults;
 
   return (
@@ -177,61 +136,61 @@ Only include real, verifiable URLs that exist on the web. Do not fabricate links
       />
 
       <div className={`transition-all duration-500 ${bladeOpen ? "md:ml-64" : ""}`}>
-        {/* Ghost navigation */}
         <GhostNav query={submittedQuery} onHome={() => { setSubmittedQuery(""); setQuery(""); }} />
 
         <main className="relative">
           {isLanding && <Landing query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} />}
 
           {!isLanding && (
-            <div className="max-w-6xl mx-auto px-5 md:px-8 pb-32 pt-28 md:pt-32">
+            <div className="max-w-3xl mx-auto px-5 md:px-8 pb-32 pt-28 md:pt-32">
               {/* Compact search */}
-              <div id="aperture-input-wrap" className="mb-8 md:mb-10">
+              <div className="mb-8 md:mb-10">
                 <SearchAperture query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} compact />
               </div>
+
+              {/* Result meta */}
+              {!loading && !error && (
+                <div className="flex items-center gap-2 px-1 mb-3 text-sm text-moss">
+                  <Globe className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  <span>
+                    {hasResults
+                      ? `Sekitar ${results.length} hasil untuk `
+                      : noResults
+                      ? "Tidak ada hasil untuk "
+                      : ""}
+                    <span className="font-medium text-foreground">"{submittedQuery}"</span>
+                  </span>
+                </div>
+              )}
 
               {error ? (
                 <div className="glass rounded-2xl p-8 text-center fade-rise">
                   <p className="text-foreground/70">{error}</p>
                 </div>
+              ) : loading ? (
+                <ResultsSkeleton />
+              ) : noResults ? (
+                <div className="glass rounded-2xl p-10 text-center fade-rise">
+                  <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-4">
+                    <Globe className="w-5 h-5 text-moss/60" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-foreground/80 font-medium">Tidak ada hasil ditemukan</p>
+                  <p className="text-sm text-moss mt-1.5">Coba kata kunci lain atau periksa ejaannya.</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_0.8fr] gap-6 lg:gap-8"
-                     aria-live="polite">
-                  <div className="space-y-6 lg:order-1">
-                    <AISummary summary={summary} citations={citations} loading={loading} />
-                  </div>
-                  <div className="lg:order-2 space-y-2">
-                    <div className="flex items-center gap-2 px-1 mb-2">
-                      <Globe className="w-3.5 h-3.5 text-moss" strokeWidth={1.75} />
-                      <span className="text-xs font-semibold uppercase tracking-wider text-moss">
-                        Web Stream
-                      </span>
-                      {!loading && results.length > 0 && (
-                        <span className="text-xs text-moss/60">· {results.length} sources</span>
-                      )}
+                <div aria-live="polite" className="space-y-1">
+                  {results.map((r, i) => (
+                    <div key={i} className="relative group/card">
+                      <ResultCard result={r} index={i} />
+                      <button
+                        onClick={() => addToBucket(r)}
+                        aria-label="Simpan ke research bucket"
+                        className="absolute top-4 right-2 opacity-0 group-hover/card:opacity-100 p-2 rounded-full glass hover:border-accent/40 border border-transparent transition-all focus-ring"
+                      >
+                        <Bookmark className="w-3.5 h-3.5 text-moss hover:text-accent" strokeWidth={1.75} />
+                      </button>
                     </div>
-                    {loading ? (
-                      <ResultsSkeleton />
-                    ) : (
-                      results.map((r, i) => (
-                        <div key={i} className="relative group/card">
-                          <ResultCard result={r} index={i} />
-                          <button
-                            onClick={() => addToBucket(r)}
-                            aria-label="Save to research bucket"
-                            className="absolute top-4 right-2 opacity-0 group-hover/card:opacity-100 p-2 rounded-full glass hover:border-accent/40 border border-transparent transition-all focus-ring"
-                          >
-                            <Bookmark className="w-3.5 h-3.5 text-moss hover:text-accent" strokeWidth={1.75} />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="lg:order-3">
-                    <div className="lg:sticky lg:top-28 space-y-6">
-                      <KnowledgeNode knowledge={knowledge} loading={loading} />
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
 
@@ -271,7 +230,7 @@ function GhostNav({ query, onHome }) {
       }`}
     >
       <div className="glass border-b border-foreground/8">
-        <div className="max-w-6xl mx-auto px-5 md:px-8 h-14 flex items-center justify-between gap-4">
+        <div className="max-w-3xl mx-auto px-5 md:px-8 h-14 flex items-center justify-between gap-4">
           <button onClick={onHome} className="flex items-center gap-2 focus-ring rounded">
             <div className="w-6 h-6 rounded-md bg-foreground flex items-center justify-center">
               <Layers className="w-3.5 h-3.5 text-background" strokeWidth={2} />
@@ -279,7 +238,7 @@ function GhostNav({ query, onHome }) {
             <span className="font-semibold tracking-tight text-foreground">Monolith</span>
           </button>
           <nav className="hidden md:flex items-center gap-1.5 text-xs text-moss">
-            <span className="px-2 py-1 rounded-full bg-foreground/4">Search</span>
+            <span className="px-2 py-1 rounded-full bg-foreground/4">Pencarian</span>
             <ChevronDown className="w-3 h-3 -rotate-90" strokeWidth={1.75} />
             <span className="px-2 py-1 rounded-full bg-accent/10 text-accent font-medium max-w-xs truncate">
               {query}
@@ -305,13 +264,13 @@ function Landing({ query, setQuery, onSearch, loading }) {
         </div>
 
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.03em] leading-[1.05] text-balance">
-          Search is just the beginning.
+          Cari apa pun di web.
           <br />
-          <span className="text-moss">Synthesize</span> the rest.
+          <span className="text-moss">Langsung</span> ke sumbernya.
         </h1>
         <p className="mt-6 md:mt-8 text-lg md:text-xl text-moss max-w-2xl mx-auto leading-relaxed text-balance">
-          A neural gateway that retrieves the web and choreographs it into
-          instant, multi-dimensional understanding.
+          Mesin pencari yang menampilkan daftar situs sungguhan untuk setiap
+          kata kunci — tanpa AI, tanpa perantara.
         </p>
 
         <div className="mt-12 md:mt-16">
@@ -320,7 +279,7 @@ function Landing({ query, setQuery, onSearch, loading }) {
 
         {/* Suggestions */}
         <div className="mt-10 flex flex-wrap items-center justify-center gap-2.5">
-          <span className="text-xs uppercase tracking-widest text-moss/70 mr-1">Try</span>
+          <span className="text-xs uppercase tracking-widest text-moss/70 mr-1">Coba</span>
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
@@ -333,12 +292,12 @@ function Landing({ query, setQuery, onSearch, loading }) {
           ))}
         </div>
 
-        {/* Pillars */}
+        {/* Features */}
         <div className="mt-20 md:mt-28 grid grid-cols-1 md:grid-cols-3 gap-4 text-left max-w-4xl mx-auto">
           {[
-            { icon: Brain, title: "Core Synthesis", body: "An AI-distilled answer with cited sources, so you grasp the gist before you click." },
-            { icon: Globe, title: "Web Stream", body: "High-fidelity cards for organic results, each expandable without leaving the flow." },
-            { icon: Layers, title: "Knowledge Node", body: "An entity card surfacing facts, context, and the canonical reference." },
+            { icon: Globe, title: "Hasil Web Nyata", body: "Setiap pencarian mengambil daftar situs sungguhan dari mesin pencari web." },
+            { icon: Layers, title: "Tanpa Perantara", body: "Tanpa AI yang meringkas. Anda membaca sumber aslinya langsung." },
+            { icon: Clock, title: "Riwayat & Bucket", body: "Simpan pencarian terakhir dan kumpulkan hasil untuk diteliti nanti." },
           ].map((p) => (
             <div key={p.title} className="glass rounded-2xl p-5 fade-rise">
               <p.icon className="w-5 h-5 text-accent mb-3" strokeWidth={1.75} />
@@ -354,8 +313,8 @@ function Landing({ query, setQuery, onSearch, loading }) {
 
 function ResultsSkeleton() {
   return (
-    <div className="space-y-2">
-      {[0, 1, 2, 3, 4].map((i) => (
+    <div className="space-y-2" aria-live="polite">
+      {[0, 1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="rounded-xl p-5">
           <div className="h-3 w-32 rounded shimmer mb-3" />
           <div className="h-5 w-3/4 rounded shimmer mb-3" />
@@ -369,16 +328,16 @@ function ResultsSkeleton() {
 
 function DeepSearchFooter({ onPick }) {
   const prompts = [
-    "Find the original source of this claim",
-    "Compare these as a table",
-    "What's the counterargument?",
-    "Summarize the latest developments",
+    "resep sederhana",
+    "sejarah singkat",
+    "tips pemula",
+    "dimana beli",
   ];
   return (
     <footer id="deep-search" className="mt-16 pt-10 border-t border-foreground/10">
       <div className="text-center mb-6">
-        <p className="text-xs uppercase tracking-widest text-moss">Deep Search</p>
-        <p className="text-foreground/60 mt-1.5 text-sm">Multi-hop queries to go further.</p>
+        <p className="text-xs uppercase tracking-widest text-moss">Cari lebih dalam</p>
+        <p className="text-foreground/60 mt-1.5 text-sm">Pencarian lanjutan dengan satu ketukan.</p>
       </div>
       <div className="flex flex-wrap justify-center gap-2.5">
         {prompts.map((p) => (
@@ -393,7 +352,7 @@ function DeepSearchFooter({ onPick }) {
         ))}
       </div>
       <div className="mt-12 text-center text-xs text-moss/60">
-        Monolith · Spatial Synthesis Search · Built with real-time web retrieval
+        Monolith · Pencarian Web · Hasil nyata dari DuckDuckGo
       </div>
     </footer>
   );
