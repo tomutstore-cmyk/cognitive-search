@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import SearchAperture from "@/components/search/SearchAperture";
 import ResultCard from "@/components/search/ResultCard";
-import RecentSearches from "@/components/search/RecentSearches";
-import ResearchBucket from "@/components/search/ResearchBucket";
-import { Bookmark, ArrowRight, Layers, Globe, ChevronDown, Clock } from "lucide-react";
+import { ArrowRight, Layers, Globe, ChevronDown } from "lucide-react";
 
 const SUGGESTIONS = [
   "makanan khas Indonesia",
@@ -13,47 +11,12 @@ const SUGGESTIONS = [
   "manfaat buah naga",
 ];
 
-function loadHistory() {
-  try {
-    return JSON.parse(localStorage.getItem("monolith_history") || "[]");
-  } catch {
-    return [];
-  }
-}
-function saveHistory(items) {
-  localStorage.setItem("monolith_history", JSON.stringify(items.slice(0, 20)));
-}
-function loadBucket() {
-  try {
-    return JSON.parse(localStorage.getItem("monolith_bucket") || "[]");
-  } catch {
-    return [];
-  }
-}
-function saveBucket(items) {
-  localStorage.setItem("monolith_bucket", JSON.stringify(items.slice(0, 50)));
-}
-
 export default function Home() {
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState([]);
-
-  const [history, setHistory] = useState(loadHistory);
-  const [bucket, setBucket] = useState(loadBucket);
-  const [bladeOpen, setBladeOpen] = useState(false);
-  const [bucketOpen, setBucketOpen] = useState(false);
-
-  const addToBucket = useCallback((result) => {
-    setBucket((prev) => {
-      if (prev.some((r) => r.url === result.url)) return prev;
-      const next = [{ ...result, id: crypto.randomUUID() }, ...prev];
-      saveBucket(next);
-      return next;
-    });
-  }, []);
 
   const runSearch = useCallback(async (q) => {
     const clean = q.trim();
@@ -71,15 +34,6 @@ export default function Home() {
       } else {
         setResults(Array.isArray(data.results) ? data.results : []);
       }
-
-      setHistory((prev) => {
-        const next = [
-          { id: crypto.randomUUID(), query: clean, at: Date.now() },
-          ...prev.filter((h) => h.query !== clean),
-        ];
-        saveHistory(next);
-        return next;
-      });
     } catch (e) {
       setError("Pencarian gagal. Coba lagi sebentar lagi.");
     } finally {
@@ -119,98 +73,59 @@ export default function Home() {
         />
       </div>
 
-      <RecentSearches
-        items={history}
-        open={bladeOpen}
-        setOpen={setBladeOpen}
-        onPick={(q) => {
-          setQuery(q);
-          runSearch(q);
-        }}
-        onClear={() => { setHistory([]); saveHistory([]); }}
-        onRemove={(id) => {
-          const next = history.filter((h) => h.id !== id);
-          setHistory(next);
-          saveHistory(next);
-        }}
-      />
+      <GhostNav query={submittedQuery} onHome={() => { setSubmittedQuery(""); setQuery(""); }} />
 
-      <div className={`transition-all duration-500 ${bladeOpen ? "md:ml-64" : ""}`}>
-        <GhostNav query={submittedQuery} onHome={() => { setSubmittedQuery(""); setQuery(""); }} />
+      <main className="relative">
+        {isLanding && <Landing query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} />}
 
-        <main className="relative">
-          {isLanding && <Landing query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} />}
-
-          {!isLanding && (
-            <div className="max-w-3xl mx-auto px-5 md:px-8 pb-32 pt-28 md:pt-32">
-              {/* Compact search */}
-              <div className="mb-8 md:mb-10">
-                <SearchAperture query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} compact />
-              </div>
-
-              {/* Result meta */}
-              {!loading && !error && (
-                <div className="flex items-center gap-2 px-1 mb-3 text-sm text-moss">
-                  <Globe className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  <span>
-                    {hasResults
-                      ? `Sekitar ${results.length} hasil untuk `
-                      : noResults
-                      ? "Tidak ada hasil untuk "
-                      : ""}
-                    <span className="font-medium text-foreground">"{submittedQuery}"</span>
-                  </span>
-                </div>
-              )}
-
-              {error ? (
-                <div className="glass rounded-2xl p-8 text-center fade-rise">
-                  <p className="text-foreground/70">{error}</p>
-                </div>
-              ) : loading ? (
-                <ResultsSkeleton />
-              ) : noResults ? (
-                <div className="glass rounded-2xl p-10 text-center fade-rise">
-                  <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-4">
-                    <Globe className="w-5 h-5 text-moss/60" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-foreground/80 font-medium">Tidak ada hasil ditemukan</p>
-                  <p className="text-sm text-moss mt-1.5">Coba kata kunci lain atau periksa ejaannya.</p>
-                </div>
-              ) : (
-                <div aria-live="polite" className="space-y-1">
-                  {results.map((r, i) => (
-                    <div key={i} className="relative group/card">
-                      <ResultCard result={r} index={i} />
-                      <button
-                        onClick={() => addToBucket(r)}
-                        aria-label="Simpan ke research bucket"
-                        className="absolute top-4 right-2 opacity-0 group-hover/card:opacity-100 p-2 rounded-full glass hover:border-accent/40 border border-transparent transition-all focus-ring"
-                      >
-                        <Bookmark className="w-3.5 h-3.5 text-moss hover:text-accent" strokeWidth={1.75} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {hasResults && <DeepSearchFooter onPick={(q) => { setQuery(q); runSearch(q); }} />}
+        {!isLanding && (
+          <div className="max-w-3xl mx-auto px-5 md:px-8 pb-32 pt-28 md:pt-32">
+            {/* Compact search */}
+            <div className="mb-8 md:mb-10">
+              <SearchAperture query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} compact />
             </div>
-          )}
-        </main>
-      </div>
 
-      <ResearchBucket
-        items={bucket}
-        open={bucketOpen}
-        setOpen={setBucketOpen}
-        onRemove={(id) => {
-          const next = bucket.filter((b) => b.id !== id);
-          setBucket(next);
-          saveBucket(next);
-        }}
-        onClear={() => { setBucket([]); saveBucket([]); }}
-      />
+            {/* Result meta */}
+            {!loading && !error && (
+              <div className="flex items-center gap-2 px-1 mb-3 text-sm text-moss">
+                <Globe className="w-3.5 h-3.5" strokeWidth={1.75} />
+                <span>
+                  {hasResults
+                    ? `Sekitar ${results.length} hasil untuk `
+                    : noResults
+                    ? "Tidak ada hasil untuk "
+                    : ""}
+                  <span className="font-medium text-foreground">"{submittedQuery}"</span>
+                </span>
+              </div>
+            )}
+
+            {error ? (
+              <div className="glass rounded-2xl p-8 text-center fade-rise">
+                <p className="text-foreground/70">{error}</p>
+              </div>
+            ) : loading ? (
+              <ResultsSkeleton />
+            ) : noResults ? (
+              <div className="glass rounded-2xl p-10 text-center fade-rise">
+                <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-4">
+                  <Globe className="w-5 h-5 text-moss/60" strokeWidth={1.5} />
+                </div>
+                <p className="text-foreground/80 font-medium">Tidak ada hasil ditemukan</p>
+                <p className="text-sm text-moss mt-1.5">Coba kata kunci lain atau periksa ejaannya.</p>
+              </div>
+            ) : (
+              <div aria-live="polite" className="space-y-1">
+                {results.map((r, i) => (
+                  <ResultCard key={i} result={r} index={i} />
+                ))}
+              </div>
+            )}
+
+            {hasResults && <DeepSearchFooter onPick={(q) => { setQuery(q); runSearch(q); }} />}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
@@ -293,11 +208,10 @@ function Landing({ query, setQuery, onSearch, loading }) {
         </div>
 
         {/* Features */}
-        <div className="mt-20 md:mt-28 grid grid-cols-1 md:grid-cols-3 gap-4 text-left max-w-4xl mx-auto">
+        <div className="mt-20 md:mt-28 grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-3xl mx-auto">
           {[
             { icon: Globe, title: "Hasil Web Nyata", body: "Setiap pencarian mengambil daftar situs sungguhan dari mesin pencari web." },
             { icon: Layers, title: "Tanpa Perantara", body: "Tanpa AI yang meringkas. Anda membaca sumber aslinya langsung." },
-            { icon: Clock, title: "Riwayat & Bucket", body: "Simpan pencarian terakhir dan kumpulkan hasil untuk diteliti nanti." },
           ].map((p) => (
             <div key={p.title} className="glass rounded-2xl p-5 fade-rise">
               <p.icon className="w-5 h-5 text-accent mb-3" strokeWidth={1.75} />
