@@ -163,12 +163,11 @@ function Landing({ query, setQuery, onSearch, loading }) {
     <section className="relative min-h-screen flex flex-col items-center justify-center px-5 md:px-8">
       <div className="w-full max-w-4xl mx-auto text-center fade-rise">
         {/* Mark */}
-        <div className="flex items-center justify-center gap-3 mb-6 md:mb-8">
-          <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-[#e85a1f] flex items-center justify-center shadow-md">
-            <Fish className="w-6 h-6 text-white" strokeWidth={2} />
-            <div className="absolute -inset-1.5 rounded-2xl bg-accent/25 blur-md -z-10 pulse-line" />
+        <div className="flex items-center justify-center gap-3 mb-12 md:mb-16">
+          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-[#e85a1f] flex items-center justify-center shadow-[0_8px_28px_-8px_rgba(204,51,0,0.45)]">
+            <Fish className="w-7 h-7 text-white" strokeWidth={2} />
           </div>
-          <span className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+          <span className="text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
             Cari<span className="text-accent">ikan</span>.com
           </span>
         </div>
