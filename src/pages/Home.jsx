@@ -171,17 +171,7 @@ function Landing({ query, setQuery, onSearch, loading }) {
           <span className="text-2xl md:text-3xl font-semibold tracking-tight">Monolith</span>
         </div>
 
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-medium tracking-[-0.03em] leading-[1.05] text-balance">
-          Cari apa pun di web.
-          <br />
-          <span className="text-moss">Langsung</span> ke sumbernya.
-        </h1>
-        <p className="mt-6 md:mt-8 text-lg md:text-xl text-moss max-w-2xl mx-auto leading-relaxed text-balance">
-          Mesin pencari yang menampilkan daftar situs sungguhan untuk setiap
-          kata kunci — tanpa AI, tanpa perantara.
-        </p>
-
-        <div className="mt-12 md:mt-16">
+        <div className="mt-14 md:mt-20">
           <SearchAperture query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} />
         </div>
       </div>
