@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import SearchAperture from "@/components/search/SearchAperture";
 import ResultCard from "@/components/search/ResultCard";
-import { Layers, Globe, ArrowRight, ChevronDown } from "lucide-react";
+import { Fish, Globe, ArrowRight, ChevronDown } from "lucide-react";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -140,10 +140,10 @@ function GhostNav({ query, onHome }) {
       <div className="glass border-b border-foreground/8">
         <div className="max-w-3xl mx-auto px-5 md:px-8 h-14 flex items-center justify-between gap-4">
           <button onClick={onHome} className="flex items-center gap-2 focus-ring rounded">
-            <div className="w-6 h-6 rounded-md bg-foreground flex items-center justify-center">
-              <Layers className="w-3.5 h-3.5 text-background" strokeWidth={2} />
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-[#e85a1f] flex items-center justify-center shadow-sm">
+              <Fish className="w-4 h-4 text-white" strokeWidth={2} />
             </div>
-            <span className="font-semibold tracking-tight text-foreground">Monolith</span>
+            <span className="font-semibold tracking-tight text-foreground">Cariikan.com</span>
           </button>
           <nav className="hidden md:flex items-center gap-1.5 text-xs text-moss">
             <span className="px-2 py-1 rounded-full bg-foreground/4">Pencarian</span>
@@ -163,12 +163,14 @@ function Landing({ query, setQuery, onSearch, loading }) {
     <section className="relative min-h-screen flex flex-col items-center justify-center px-5 md:px-8">
       <div className="w-full max-w-4xl mx-auto text-center fade-rise">
         {/* Mark */}
-        <div className="flex items-center justify-center gap-3 mb-10 md:mb-14">
-          <div className="relative w-11 h-11 rounded-2xl bg-foreground flex items-center justify-center">
-            <Layers className="w-5 h-5 text-background" strokeWidth={2} />
-            <div className="absolute -inset-1 rounded-2xl bg-accent/20 blur-md -z-10 pulse-line" />
+        <div className="flex items-center justify-center gap-3 mb-6 md:mb-8">
+          <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-[#e85a1f] flex items-center justify-center shadow-md">
+            <Fish className="w-6 h-6 text-white" strokeWidth={2} />
+            <div className="absolute -inset-1.5 rounded-2xl bg-accent/25 blur-md -z-10 pulse-line" />
           </div>
-          <span className="text-2xl md:text-3xl font-semibold tracking-tight">Monolith</span>
+          <span className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+            Cari<span className="text-accent">ikan</span>.com
+          </span>
         </div>
 
         <div className="mt-14 md:mt-20">
@@ -220,7 +222,7 @@ function DeepSearchFooter({ onPick }) {
         ))}
       </div>
       <div className="mt-12 text-center text-xs text-moss/60">
-        Monolith · Pencarian Web · Hasil nyata dari DuckDuckGo
+        Cariikan.com · Pencarian Web · Hasil nyata dari DuckDuckGo
       </div>
     </footer>
   );
