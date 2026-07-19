@@ -66,7 +66,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen overflow-x-hidden">
       {/* Generative background */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-background" />
         <div
           className="absolute -top-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full aurora-anim"
