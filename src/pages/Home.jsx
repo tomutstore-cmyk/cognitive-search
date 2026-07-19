@@ -120,7 +120,7 @@ export default function Home() {
                 <p className="text-sm text-moss mt-1.5">Coba kata kunci lain atau periksa ejaannya.</p>
               </div>
             ) : (
-              <div aria-live="polite" className="space-y-1">
+              <div aria-live="polite" className="space-y-0">
                 {results.map((r, i) => (
                   <ResultCard key={i} result={r} index={i} />
                 ))}
@@ -194,13 +194,14 @@ function Landing({ query, setQuery, onSearch, loading }) {
 
 function ResultsSkeleton() {
   return (
-    <div className="space-y-2" aria-live="polite">
+    <div aria-live="polite">
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="rounded-xl p-5">
-          <div className="h-3 w-32 rounded shimmer mb-3" />
-          <div className="h-5 w-3/4 rounded shimmer mb-3" />
+        <div key={i} className="px-3 py-5 -mx-1">
+          <div className="h-3 w-28 rounded shimmer mb-2" />
+          <div className="h-5 w-3/4 rounded shimmer mb-2.5" />
           <div className="h-3.5 rounded shimmer mb-2" />
           <div className="h-3.5 rounded shimmer w-5/6" />
+          <div className="h-px bg-foreground/[0.06] mt-5" />
         </div>
       ))}
     </div>
