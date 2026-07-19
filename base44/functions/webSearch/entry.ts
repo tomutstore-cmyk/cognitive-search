@@ -16,33 +16,54 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    const encoded = encodeURIComponent(query.trim());
-    const ddgUrl = `https://html.duckduckgo.com/html/?q=${encoded}`;
-
-    const resp = await fetch(ddgUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
-
-    if (!resp.ok) {
-      return Response.json(
-        { error: `Search provider error: ${resp.status}` },
-        { status: 502 }
-      );
-    }
-
-    const html = await resp.text();
-    const results = parseResults(html, query);
+    const results = await searchDuckDuckGo(query.trim());
 
     return Response.json({ query, count: results.length, results });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+async function searchDuckDuckGo(query) {
+  // Try the html endpoint first
+  let results = await fetchHtmlResults(query);
+  if (results.length === 0) {
+    results = await fetchLiteResults(query);
+  }
+  return results;
+}
+
+async function fetchHtmlResults(query) {
+  const encoded = encodeURIComponent(query);
+  const ddgUrl = `https://html.duckduckgo.com/html/?q=${encoded}`;
+  const resp = await fetch(ddgUrl, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  });
+  if (!resp.ok) return [];
+  const html = await resp.text();
+  return parseHtmlResults(html);
+}
+
+async function fetchLiteResults(query) {
+  const encoded = encodeURIComponent(query);
+  const ddgUrl = `https://lite.duckduckgo.com/lite/?q=${encoded}`;
+  const resp = await fetch(ddgUrl, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  });
+  if (!resp.ok) return [];
+  const html = await resp.text();
+  return parseLiteResults(html);
+}
 
 function decodeEntities(str) {
   return str
@@ -61,15 +82,18 @@ function stripTags(str) {
 }
 
 function extractRealUrl(href) {
-  // DuckDuckGo wraps links as //duckduckgo.com/l/?uddg=ENCODED&rut=...
   try {
     const u = href.startsWith('http') ? href : `https:${href}`;
     const parsed = new URL(u);
+    // Skip ad redirect links
+    if (parsed.pathname === '/y.js') return null;
     const uddg = parsed.searchParams.get('uddg');
     if (uddg) return decodeURIComponent(uddg);
+    // duckduckgo internal nav / sponsored
+    if (/duckduckgo\.com/i.test(parsed.hostname)) return null;
     return u;
   } catch {
-    return href;
+    return null;
   }
 }
 
@@ -81,9 +105,12 @@ function hostOf(url) {
   }
 }
 
-function parseResults(html, query) {
+function isAdUrl(url) {
+  return /duckduckgo\.com\/y\.js/i.test(url) || /doubleclick\.net/i.test(url);
+}
+
+function parseHtmlResults(html) {
   const out = [];
-  // Each organic result block contains a result__a link and a result__snippet
   const re =
     /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
 
@@ -92,9 +119,7 @@ function parseResults(html, query) {
     const url = extractRealUrl(m[1]);
     const title = stripTags(m[2]);
     const snippet = stripTags(m[3]);
-    if (!title || !url) continue;
-    // skip internal duckduckgo nav links
-    if (/duckduckgo\.com\/?(\?|$)/i.test(url)) continue;
+    if (!title || !url || isAdUrl(url)) continue;
     out.push({
       title,
       url,
@@ -104,14 +129,49 @@ function parseResults(html, query) {
     if (out.length >= 30) break;
   }
 
-  // Fallback: some layouts use result__url instead of snippets
   if (out.length === 0) {
     const re2 =
       /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
     while ((m = re2.exec(html)) !== null) {
       const url = extractRealUrl(m[1]);
       const title = stripTags(m[2]);
-      if (!title || !url) continue;
+      if (!title || !url || isAdUrl(url)) continue;
+      out.push({ title, url, snippet: title, source: hostOf(url) });
+      if (out.length >= 30) break;
+    }
+  }
+
+  return out;
+}
+
+// Lite endpoint uses a simple table layout:
+// <a class="result-link" href="...">title</a> ... <td class="result-snippet">snippet</td>
+function parseLiteResults(html) {
+  const out = [];
+  const re =
+    /<a[^>]*class="[^"]*result-link[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<td[^>]*class="[^"]*result-snippet[^"]*"[^>]*>([\s\S]*?)<\/td>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const url = extractRealUrl(m[1]);
+    const title = stripTags(m[2]);
+    const snippet = stripTags(m[3]);
+    if (!title || !url || isAdUrl(url)) continue;
+    out.push({
+      title,
+      url,
+      snippet: snippet || title,
+      source: hostOf(url),
+    });
+    if (out.length >= 30) break;
+  }
+
+  if (out.length === 0) {
+    const re2 =
+      /<a[^>]*class="[^"]*result-link[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+    while ((m = re2.exec(html)) !== null) {
+      const url = extractRealUrl(m[1]);
+      const title = stripTags(m[2]);
+      if (!title || !url || isAdUrl(url)) continue;
       out.push({ title, url, snippet: title, source: hostOf(url) });
       if (out.length >= 30) break;
     }
