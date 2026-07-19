@@ -103,12 +103,18 @@ function decodeDdgHref(href) {
 async function fetchSearchHtml(query) {
   const target = "https://html.duckduckgo.com/html/?q=" + encodeURIComponent(query);
   for (const make of PROXIES) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
     try {
-      const res = await fetch(make(target), { headers: { "Accept": "text/html" } });
+      const res = await fetch(make(target), {
+        headers: { "Accept": "text/html" },
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
       if (!res.ok) continue;
       const html = await res.text();
       if (html && html.indexOf("result__a") !== -1) return html;
-    } catch { /* try next proxy */ }
+    } catch { clearTimeout(timer); /* try next proxy */ }
   }
   throw new Error("all proxies failed");
 }
