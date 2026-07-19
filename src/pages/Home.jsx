@@ -2,14 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import SearchAperture from "@/components/search/SearchAperture";
 import ResultCard from "@/components/search/ResultCard";
-import { ArrowRight, Layers, Globe, ChevronDown } from "lucide-react";
-
-const SUGGESTIONS = [
-  "makanan khas Indonesia",
-  "resep ayam goreng",
-  "tempat makan enak di Jakarta",
-  "manfaat buah naga",
-];
+import { Layers, Globe, ArrowRight, ChevronDown } from "lucide-react";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -190,35 +183,6 @@ function Landing({ query, setQuery, onSearch, loading }) {
 
         <div className="mt-12 md:mt-16">
           <SearchAperture query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} />
-        </div>
-
-        {/* Suggestions */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-2.5">
-          <span className="text-xs uppercase tracking-widest text-moss/70 mr-1">Coba</span>
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => { setQuery(s); onSearch(); }}
-              className="group inline-flex items-center gap-1.5 px-4 py-2 rounded-full glass border border-foreground/8 hover:border-accent/40 text-sm text-foreground/75 hover:text-foreground transition-all focus-ring"
-            >
-              {s}
-              <ArrowRight className="w-3.5 h-3.5 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all text-accent" strokeWidth={1.75} />
-            </button>
-          ))}
-        </div>
-
-        {/* Features */}
-        <div className="mt-20 md:mt-28 grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-3xl mx-auto">
-          {[
-            { icon: Globe, title: "Hasil Web Nyata", body: "Setiap pencarian mengambil daftar situs sungguhan dari mesin pencari web." },
-            { icon: Layers, title: "Tanpa Perantara", body: "Tanpa AI yang meringkas. Anda membaca sumber aslinya langsung." },
-          ].map((p) => (
-            <div key={p.title} className="glass rounded-2xl p-5 fade-rise">
-              <p.icon className="w-5 h-5 text-accent mb-3" strokeWidth={1.75} />
-              <h3 className="font-semibold tracking-tight mb-1.5">{p.title}</h3>
-              <p className="text-sm text-moss leading-relaxed">{p.body}</p>
-            </div>
-          ))}
         </div>
       </div>
     </section>
