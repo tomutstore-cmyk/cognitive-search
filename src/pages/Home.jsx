@@ -70,7 +70,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-background" />
         <div
           className="absolute -top-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full aurora-anim"
-          style={{ background: "radial-gradient(circle, rgba(204,51,0,0.10), transparent 65%)" }}
+          style={{ background: "radial-gradient(circle, rgba(255,122,41,0.09), transparent 65%)" }}
         />
         <div
           className="absolute -bottom-1/4 -right-1/4 w-[55vw] h-[55vw] rounded-full aurora-anim2"

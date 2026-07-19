@@ -29,8 +29,8 @@ export default function SearchAperture({
         }}
         className={`group relative flex items-center gap-2 rounded-full pl-5 pr-2 py-2 bg-card transition-all duration-300 ${
           focused
-            ? "border-accent shadow-[0_8px_40px_-12px_rgba(204,51,0,0.25)]"
-            : "border-foreground/12 shadow-[0_2px_18px_-10px_rgba(15,17,16,0.18)] hover:shadow-[0_4px_22px_-10px_rgba(15,17,16,0.22)]"
+            ? "border-accent shadow-[0_8px_40px_-12px_rgba(255,122,41,0.3)]"
+            : "border-foreground/12 shadow-[0_2px_20px_-12px_rgba(255,255,255,0.05)] hover:shadow-[0_4px_24px_-12px_rgba(255,255,255,0.08)]"
         } border`}
       >
         <Search

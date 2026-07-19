@@ -4,39 +4,39 @@
 
 @layer base {
   :root {
-    --background: 40 33% 97%;
-    --foreground: 150 6% 6%;
-    --card: 0 0% 100%;
-    --card-foreground: 150 6% 6%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 150 6% 6%;
-    --primary: 150 6% 6%;
-    --primary-foreground: 40 33% 97%;
-    --secondary: 40 20% 92%;
-    --secondary-foreground: 150 6% 6%;
-    --muted: 40 16% 90%;
-    --muted-foreground: 150 6% 35%;
-    --accent: 14 100% 40%;
-    --accent-foreground: 40 33% 97%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 40 16% 86%;
-    --input: 40 16% 86%;
-    --ring: 14 100% 40%;
-    --moss: 150 11% 33%;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 0 0% 96%;
+    --primary-foreground: 0 0% 6%;
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 58%;
+    --accent: 20 100% 56%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 20 100% 56%;
+    --moss: 0 0% 56%;
     --radius: 0.75rem;
     --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    --sidebar-background: 40 33% 97%;
-    --sidebar-foreground: 150 6% 26%;
-    --sidebar-primary: 150 6% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 40 16% 90%;
-    --sidebar-accent-foreground: 150 6% 10%;
-    --sidebar-border: 40 16% 86%;
-    --sidebar-ring: 14 100% 40%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 58%;
+    --sidebar-primary: 0 0% 96%;
+    --sidebar-primary-foreground: 0 0% 6%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 20 100% 56%;
   }
 }
 
@@ -57,12 +57,12 @@
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.55);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    background: rgba(14, 14, 14, 0.72);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
   }
   .glass-dark {
-    background: rgba(15, 17, 16, 0.04);
+    background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
@@ -74,10 +74,10 @@
     text-wrap: balance;
   }
   .aperture-glow {
-    box-shadow: 0 0 0 1px rgba(15,17,16,0.06), 0 1px 2px rgba(15,17,16,0.04);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.5);
   }
   .aperture-glow-active {
-    box-shadow: 0 0 0 1px rgba(204,51,0,0.35), 0 8px 40px -8px rgba(204,51,0,0.18);
+    box-shadow: 0 0 0 1px rgba(255,122,41,0.4), 0 8px 40px -8px rgba(255,122,41,0.28);
   }
 }
 
@@ -110,7 +110,7 @@
   100% { background-position: 468px 0; }
 }
 .shimmer {
-  background: linear-gradient(90deg, rgba(15,17,16,0.04) 25%, rgba(15,17,16,0.09) 50%, rgba(15,17,16,0.04) 75%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.03) 75%);
   background-size: 936px 100%;
   animation: shimmer 1.6s linear infinite;
 }
@@ -118,5 +118,5 @@
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(15,17,16,0.12); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(15,17,16,0.22); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
