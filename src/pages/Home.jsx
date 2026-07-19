@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
 import SearchAperture from "@/components/search/SearchAperture";
-import ResultCard from "@/components/search/ResultCard";
+import RajaPanenResult from "@/components/search/RajaPanenResult";
 import { Fish, Globe, ArrowRight, ChevronDown } from "lucide-react";
-
-function hostOf(url) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -19,31 +10,14 @@ export default function Home() {
   const [error, setError] = useState("");
   const [results, setResults] = useState([]);
 
-  const runSearch = useCallback(async (q) => {
+  // Apa pun kata kunci yang dicari, hasil yang ditampilkan selalu RajaPanen.
+  const runSearch = useCallback((q) => {
     const clean = q.trim();
     if (!clean) return;
-    setLoading(true);
     setError("");
-    setSubmittedQuery(clean);
+    setLoading(false);
     setResults([]);
-
-    try {
-      const res = await base44.functions.invoke("webSearch", { query: clean });
-      const data = res.data || {};
-      const list = Array.isArray(data?.results) ? data.results : [];
-      setResults(
-        list.map((r) => ({
-          title: r.title,
-          url: r.url,
-          snippet: r.snippet,
-          source: hostOf(r.url),
-        }))
-      );
-    } catch (e) {
-      setError("Pencarian gagal. Coba lagi sebentar lagi.");
-    } finally {
-      setLoading(false);
-    }
+    setSubmittedQuery(clean);
   }, []);
 
   const onSearch = () => runSearch(query);
@@ -90,44 +64,18 @@ export default function Home() {
               <SearchAperture query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} compact />
             </div>
 
-            {/* Result meta */}
-            {!loading && !error && (
-              <div className="flex items-center gap-2 px-1 mb-3 text-sm text-moss">
-                <Globe className="w-3.5 h-3.5" strokeWidth={1.75} />
-                <span>
-                  {hasResults
-                    ? `Sekitar ${results.length} hasil untuk `
-                    : noResults
-                    ? "Tidak ada hasil untuk "
-                    : ""}
-                  <span className="font-medium text-foreground">"{submittedQuery}"</span>
-                </span>
-              </div>
-            )}
+            {/* Result label */}
+            <div className="flex items-center gap-2 px-1 mb-4 text-sm text-moss">
+              <Globe className="w-3.5 h-3.5" strokeWidth={1.75} />
+              <span>
+                Hasil pencarian untuk{" "}
+                <span className="font-medium text-foreground">"{submittedQuery}"</span>
+              </span>
+            </div>
 
-            {error ? (
-              <div className="glass rounded-2xl p-8 text-center fade-rise">
-                <p className="text-foreground/70">{error}</p>
-              </div>
-            ) : loading ? (
-              <ResultsSkeleton />
-            ) : noResults ? (
-              <div className="glass rounded-2xl p-10 text-center fade-rise">
-                <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-4">
-                  <Globe className="w-5 h-5 text-moss/60" strokeWidth={1.5} />
-                </div>
-                <p className="text-foreground/80 font-medium">Tidak ada hasil ditemukan</p>
-                <p className="text-sm text-moss mt-1.5">Coba kata kunci lain atau periksa ejaannya.</p>
-              </div>
-            ) : (
-              <div aria-live="polite" className="space-y-0">
-                {results.map((r, i) => (
-                  <ResultCard key={i} result={r} index={i} />
-                ))}
-              </div>
-            )}
+            <RajaPanenResult query={submittedQuery} />
 
-            {hasResults && <DeepSearchFooter onPick={(q) => { setQuery(q); runSearch(q); }} />}
+            <DeepSearchFooter onPick={(q) => { setQuery(q); runSearch(q); }} />
           </div>
         )}
       </main>
