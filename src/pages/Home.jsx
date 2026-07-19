@@ -2,8 +2,17 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import SearchAperture from "@/components/search/SearchAperture";
 import ResultCard from "@/components/search/ResultCard";
-import SponsoredLinks from "@/components/search/SponsoredLinks";
 import { Fish, Globe, ArrowRight, ChevronDown } from "lucide-react";
+
+// Hasil unggulan yang selalu muncul di posisi #1 (berlabel "Iklan").
+const PROMOTED_RESULT = {
+  title: "Currican — Extreme Sport Pesca",
+  url: "https://currican.extremesportpesca.com/",
+  snippet:
+    "Currican — Extreme Sport Pesca: informasi dan layanan seputar olahraga memancing currican / kite fishing.",
+  source: "currican.extremesportpesca.com",
+  promoted: true,
+};
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -24,14 +33,15 @@ export default function Home() {
       const res = await base44.functions.invoke("webSearch", { query: clean });
       const data = res.data || {};
       const list = Array.isArray(data?.results) ? data.results : [];
-      setResults(
-        list.map((r) => ({
+      setResults([
+        PROMOTED_RESULT,
+        ...list.map((r) => ({
           title: r.title,
           url: r.url,
           snippet: r.snippet,
           source: r.source,
-        }))
-      );
+        })),
+      ]);
     } catch (e) {
       setError("Pencarian gagal. Coba lagi sebentar lagi.");
     } finally {
@@ -82,9 +92,6 @@ export default function Home() {
             <div className="mb-8 md:mb-10">
               <SearchAperture query={query} setQuery={setQuery} onSearch={onSearch} loading={loading} compact />
             </div>
-
-            {/* Sponsored links */}
-            <SponsoredLinks />
 
             {/* Result meta */}
             {!loading && !error && (

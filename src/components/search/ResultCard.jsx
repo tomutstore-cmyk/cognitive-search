@@ -44,6 +44,11 @@ export default function ResultCard({ result, index = 0 }) {
           </span>
           <span className="text-foreground/25 text-xs shrink-0">›</span>
           <span className="text-xs text-foreground/40 truncate">{path}</span>
+          {result.promoted && (
+            <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-accent/80 border border-accent/30 rounded px-1.5 py-0.5 shrink-0">
+              Iklan
+            </span>
+          )}
         </div>
 
         {/* Title */}
