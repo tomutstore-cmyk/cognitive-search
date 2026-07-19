@@ -1,4 +1,4 @@
-// Cariikan.com — static client-side search via DuckDuckGo (HTML) through public CORS proxies.
+// Cariikan.com — static client-side search via Wikipedia API (CORS-enabled, no key needed).
 
 const PROMOTED_RESULT = {
   title: "Currican — Extreme Sport Pesca",
@@ -10,13 +10,6 @@ const PROMOTED_RESULT = {
 };
 
 const PROMPTS = ["resep sederhana", "sejarah singkat", "tips pemula", "dimana beli"];
-
-// Try several public proxies in order; first that returns parseable results wins.
-const PROXIES = [
-  (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-  (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
-  (u) => "https://thingproxy.freeboard.io/fetch/" + u,
-];
 
 const $ = (s) => document.querySelector(s);
 const landing = $("#landing");
@@ -89,54 +82,43 @@ function pathOf(url) {
   try { const u = new URL(url); return u.pathname.replace(/\/+$/, "") || "/"; } catch { return ""; }
 }
 
-// DuckDuckGo redirect links look like //duckduckgo.com/l/?uddg=<encoded real url>
-function decodeDdgHref(href) {
+// Strip HTML tags from Wikipedia snippet text.
+function stripTags(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return (tmp.textContent || "").trim();
+}
+
+// Fetch search results from a Wikipedia API (CORS-enabled via origin=*).
+async function fetchWiki(query, lang) {
+  const base = `https://${lang}.wikipedia.org/w/api.php`;
+  const url = `${base}?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=10&format=json&origin=*`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
-    let h = href.trim();
-    if (h.startsWith("//")) h = "https:" + h;
-    const u = new URL(h);
-    const uddg = u.searchParams.get("uddg");
-    return uddg ? decodeURIComponent(uddg) : h;
-  } catch { return href; }
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) return [];
+    const json = await res.json();
+    const search = json?.query?.search;
+    return Array.isArray(search) ? search : [];
+  } catch { clearTimeout(timer); return []; }
 }
 
-async function fetchSearchHtml(query) {
-  const target = "https://html.duckduckgo.com/html/?q=" + encodeURIComponent(query);
-  for (const make of PROXIES) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    try {
-      const res = await fetch(make(target), {
-        headers: { "Accept": "text/html" },
-        signal: ctrl.signal,
-      });
-      clearTimeout(timer);
-      if (!res.ok) continue;
-      const html = await res.text();
-      if (html && html.indexOf("result__a") !== -1) return html;
-    } catch { clearTimeout(timer); /* try next proxy */ }
-  }
-  throw new Error("all proxies failed");
-}
-
-function parseDdg(html, query) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const items = [];
-  const seen = new Set();
-  doc.querySelectorAll(".result, .web-result").forEach((el) => {
-    const a = el.querySelector("a.result__a");
-    if (!a) return;
-    const url = decodeDdgHref(a.getAttribute("href") || a.href || "");
-    if (!url || seen.has(url)) return;
-    seen.add(url);
-    const title = (a.textContent || "").trim();
-    const snipEl = el.querySelector(".result__snippet");
-    const snippet = snipEl ? (snipEl.textContent || "").trim() : "";
-    if (!title) return;
-    items.push({ title, url, snippet, source: hostOf(url) });
-    if (items.length >= 10) return;
+async function fetchResults(query) {
+  // Try Indonesian Wikipedia first, fall back to English.
+  let entries = await fetchWiki(query, "id");
+  if (entries.length === 0) entries = await fetchWiki(query, "en");
+  return entries.map((e) => {
+    const title = (e.title || "").trim();
+    const url = `https://id.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+    return {
+      title,
+      url,
+      snippet: stripTags(e.snippet || ""),
+      source: "id.wikipedia.org",
+    };
   });
-  return items;
 }
 
 function renderSkeletons() {
@@ -202,8 +184,7 @@ async function runSearch(q) {
   renderSkeletons();
   setSubmitting(true);
   try {
-    const html = await fetchSearchHtml(clean);
-    const list = parseDdg(html, clean);
+    const list = await fetchResults(clean);
     if (list.length === 0) renderEmpty(clean);
     else renderResults(list, clean);
   } catch (e) {
